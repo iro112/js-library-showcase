@@ -41,6 +41,25 @@ export default {
         <div class="sp-note"><strong>핵심:</strong> <code>new Cropper(img, { aspectRatio, preview })</code>로 초기화. <code>cropper.getCroppedCanvas().toDataURL()</code>로 크롭된 이미지를 Base64로 받아 업로드합니다.</div>
       </div>`;
 
+    // 외부 이미지 의존성 없이 Canvas로 데모 이미지 생성
+    const makeImg = (w, h, hue) => {
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      const g = ctx.createLinearGradient(0, 0, w, h);
+      g.addColorStop(0, `hsl(${hue},60%,18%)`); g.addColorStop(1, `hsl(${hue+50},60%,28%)`);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      [0,1,2,3,4].forEach(i => {
+        ctx.beginPath(); ctx.arc(w*(0.15+i*0.18), h*0.5, 35+i*12, 0, Math.PI*2);
+        ctx.fillStyle = `hsla(${hue+i*40},80%,65%,0.35)`; ctx.fill();
+      });
+      ctx.beginPath(); ctx.arc(w*0.5, h*0.35, 60, 0, Math.PI*2);
+      ctx.fillStyle = `hsla(${hue+20},90%,75%,0.25)`; ctx.fill();
+      ctx.font = 'bold 18px sans-serif'; ctx.fillStyle = `hsla(0,0%,100%,0.4)`;
+      ctx.textAlign = 'center'; ctx.fillText('Crop Demo', w/2, h-16);
+      return c.toDataURL();
+    };
+    document.getElementById('cp-img').src = makeImg(600, 400, 260);
+
     const cropper = new window.Cropper(document.getElementById('cp-img'), {
       aspectRatio: 1,
       preview: '#cp-preview',
