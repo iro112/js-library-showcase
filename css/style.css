@@ -281,3 +281,160 @@ body {
   .hero-title { font-size: 24px; }
   .step { flex-direction: column; gap: 12px; }
 }
+
+/* ════════════════════════════════════════
+   Showcase Page Layout (공통)
+   ════════════════════════════════════════ */
+.sp-page {}
+
+.sp-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.sp-cat {
+  display: inline-block;
+  padding: 3px 10px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  color: var(--accent-light);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  border-radius: 20px;
+  margin-bottom: 10px;
+}
+
+.sp-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  margin-bottom: 8px;
+}
+
+.sp-desc {
+  color: var(--text-muted);
+  font-size: 13.5px;
+  line-height: 1.75;
+  max-width: 500px;
+}
+
+.sp-install {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sp-cmd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 14px;
+  min-width: 260px;
+}
+
+.sp-cmd-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--accent-light);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  min-width: 28px;
+}
+
+.sp-cmd code {
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Demo Wrap */
+.sp-demo-wrap {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px;
+  margin-bottom: 20px;
+  min-height: 280px;
+}
+
+/* Note */
+.sp-note {
+  background: var(--bg-elevated);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  padding: 14px 18px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+.sp-note strong { color: var(--text); }
+
+/* Demo Buttons */
+.demo-btn {
+  padding: 9px 20px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  transition: background .18s, transform .1s;
+}
+.demo-btn:hover { background: var(--accent-light); color: var(--bg-base); }
+.demo-btn:active { transform: scale(.97); }
+.demo-btn.sec {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.demo-btn.sec:hover { border-color: var(--accent-light); color: var(--accent-light); background: transparent; }
+
+.demo-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  justify-content: center;
+}
+
+/* Demo Scroll Container */
+.demo-scroll {
+  height: 400px;
+  overflow-y: auto;
+  border-radius: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.demo-scroll::-webkit-scrollbar { width: 5px; }
+.demo-scroll::-webkit-scrollbar-track { background: transparent; }
+.demo-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* 3D Canvas */
+.demo-canvas-wrap {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+.demo-canvas-wrap canvas { width: 100% !important; height: 100% !important; }
+
+@media (max-width: 640px) {
+  .sp-head { flex-direction: column; }
+  .sp-cmd { min-width: 100%; }
+  .sp-demo-wrap { padding: 20px; }
+}
