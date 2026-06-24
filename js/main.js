@@ -23,7 +23,7 @@ import ScrollRevealShowcase from './showcases/scrollreveal.js';
 import ThreejsShowcase from './showcases/threejs.js';
 import BabylonjsShowcase from './showcases/babylonjs.js';
 import TsparticlesShowcase from './showcases/tsparticles.js';
-import SplineShowcase from './showcases/spline.js';
+import SplineShowcase from './showcases/spline.js?v=2';
 
 // ── 데이터 시각화 ────────────────────────────
 import ChartjsShowcase from './showcases/chartjs.js';
