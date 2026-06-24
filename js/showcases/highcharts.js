@@ -4,7 +4,7 @@ export default {
   id: 'highcharts',
   title: 'Highcharts',
   async init(container) {
-    await loadScript('https://cdn.jsdelivr.net/npm/highcharts@11.2.0/highcharts.js');
+    await loadScript('https://cdn.jsdelivr.net/npm/highcharts@11.0.0/highcharts.js');
 
     container.innerHTML = `
       <div class="sp-page">

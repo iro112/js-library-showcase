@@ -4,7 +4,7 @@ export default {
   id: 'threejs',
   title: 'Three.js',
   async init(container) {
-    await loadScript('https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.min.js');
+    await loadScript('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js');
     const THREE = window.THREE;
 
     container.innerHTML = `

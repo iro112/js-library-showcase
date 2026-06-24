@@ -4,7 +4,7 @@ export default {
   id: 'frappe-charts',
   title: 'Frappe Charts',
   async init(container) {
-    await loadScript('https://cdn.jsdelivr.net/npm/frappe-charts@1.6.2/dist/frappe-charts.min.iife.js');
+    await loadScript('https://cdn.jsdelivr.net/npm/frappe-charts@1.6.2/dist/frappe-charts.min.umd.js');
 
     container.innerHTML = `
       <div class="sp-page">

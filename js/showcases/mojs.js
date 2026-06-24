@@ -4,7 +4,7 @@ export default {
   id: 'mojs',
   title: 'mo.js',
   async init(container) {
-    await loadScript('https://cdn.jsdelivr.net/npm/@mojs/core@1.4.2/dist/mo.min.js');
+    await loadScript('https://cdn.jsdelivr.net/npm/@mojs/core@1.7.1/dist/mo.umd.js');
     const mojs = window.mojs;
 
     container.innerHTML = `

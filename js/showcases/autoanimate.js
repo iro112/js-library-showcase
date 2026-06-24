@@ -1,11 +1,8 @@
-import { loadScript } from '../utils.js';
-
 export default {
   id: 'autoanimate',
   title: 'AutoAnimate',
   async init(container) {
-    await loadScript('https://cdn.jsdelivr.net/npm/@formkit/auto-animate@0.8.2/index.umd.min.js');
-    const autoAnimate = window.autoAnimate.default || window.autoAnimate;
+    const { default: autoAnimate } = await import('https://cdn.jsdelivr.net/npm/@formkit/auto-animate@1.0.0-beta.6/index.min.js');
 
     const items = ['디자인 시스템', 'GSAP 실습', 'Three.js 탐구', 'CSS Grid', 'Figma 플러그인'];
     let list = [...items];

@@ -4,7 +4,7 @@ export default {
   id: 'motion-one',
   title: 'Motion One',
   async init(container) {
-    if (!_lib) _lib = await import('https://cdn.jsdelivr.net/npm/motion@10.16.2/dist/motion.js');
+    if (!_lib) _lib = await import('https://esm.sh/motion@10.16.2');
     const { animate, spring, stagger } = _lib;
 
     container.innerHTML = `
