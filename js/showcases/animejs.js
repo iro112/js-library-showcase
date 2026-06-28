@@ -1,9 +1,10 @@
 import { loadScript } from '../utils.js';
 
-// animejs.com 공식 히어로를 오마주한 Anime.js 쇼케이스
-// - 크림색 배경 + 굵은 헤드라인
-// - anime.js 타임라인으로 조립되는 와이어프레임 기계(렌즈/기어) 오브젝트
-// - 우하단의 빨간 플레이헤드 타임라인 스크러버 (드래그로 seek 가능)
+// animejs.com 히어로 오마주 — 스크롤 분해/조립(exploded view) + 360° 회전
+// 스크롤 진행도(0→1)에 따라:
+//  - 전체 어셈블리가 360° 회전
+//  - 부품들이 폭발 분해도처럼 흩어졌다가(중간) 다시 합쳐짐(양끝)
+//  - 우하단 스크럽 게이지 + 라벨(타임스탬프) 동기화
 export default {
   id: 'animejs',
   title: 'Anime.js',
@@ -13,166 +14,176 @@ export default {
 
     injectStyles();
 
-    // ---- SVG 지오메트리 (모두 원점 0,0 기준 → 그룹 회전이 중심축을 돈다) ----
-    const ticks = (r, n, len, w) => {
-      let s = '';
-      for (let i = 0; i < n; i++) {
-        const a = (i / n) * Math.PI * 2;
-        const x1 = Math.cos(a) * r, y1 = Math.sin(a) * r;
-        const x2 = Math.cos(a) * (r + len), y2 = Math.sin(a) * (r + len);
-        s += `<line class="tk" pathLength="1" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke-width="${w}"/>`;
-      }
+    const k = 0.5; // 원근(위에서 살짝 내려다본) 압축 비율
+
+    // ── 지오메트리 헬퍼 (모두 원점 0,0 기준) ──
+    const ell = (rx, cy = 0, kk = k) => `<ellipse cx="0" cy="${cy}" rx="${rx.toFixed(1)}" ry="${(rx * kk).toFixed(1)}"/>`;
+    const line = (x1, y1, x2, y2) => `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
+
+    const head = () => {
+      let s = ell(54) + ell(13);
+      for (let j = 0; j < 6; j++) { const a = j / 6 * Math.PI * 2, cx = Math.cos(a) * 31, cy = Math.sin(a) * 31 * k; s += `<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="11" ry="${(11 * k).toFixed(1)}"/>`; }
       return s;
     };
-    const ring = (r, w) => `<circle class="rg" pathLength="1" cx="0" cy="0" r="${r}" fill="none" stroke-width="${w}"/>`;
+    const gear = (r = 58, n = 34, tl = 12) => {
+      let s = ell(r) + ell(r * 0.62) + ell(10);
+      for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; s += line(Math.cos(a) * r, Math.sin(a) * r * k, Math.cos(a) * (r + tl), Math.sin(a) * (r + tl) * k); }
+      for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2; s += line(0, 0, Math.cos(a) * r * 0.62, Math.sin(a) * r * 0.62 * k); }
+      return s;
+    };
+    const knurl = (r = 50, n = 46) => {
+      let s = ell(r) + ell(r * 0.8) + ell(r * 0.4) + ell(13);
+      for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; s += line(Math.cos(a) * r * 0.8, Math.sin(a) * r * 0.8 * k, Math.cos(a) * r, Math.sin(a) * r * k); }
+      return s;
+    };
+    const barrel = (r = 64, ribs = 5, gap = 16) => {
+      let s = '', top = -(ribs - 1) / 2 * gap, bot = (ribs - 1) / 2 * gap;
+      for (let i = 0; i < ribs; i++) s += ell(r, top + i * gap);
+      s += line(-r, top, -r, bot) + line(r, top, r, bot);
+      return s;
+    };
+    const oct = (r = 30) => {
+      const pts = a => Array.from({ length: 8 }, (_, i) => { const t = (22.5 + 45 * i) * Math.PI / 180; return `${(Math.cos(t) * a).toFixed(1)},${(Math.sin(t) * a * k).toFixed(1)}`; }).join(' ');
+      return `<polygon points="${pts(r)}"/><polygon points="${pts(r * 0.52)}"/>`;
+    };
+    const plate = (r = 46) => ell(r) + ell(r, 12) + ell(r * 0.3) + line(-r, 0, -r, 12) + line(r, 0, r, 12);
+    const piston = () => {
+      let s = `<rect x="-46" y="-32" width="92" height="64" rx="12"/>`;
+      for (let j = 0; j < 3; j++) { const cx = -26 + 26 * j; s += `<ellipse cx="${cx}" cy="-18" rx="11" ry="7"/><ellipse cx="${cx}" cy="10" rx="11" ry="7"/>` + line(cx - 11, -18, cx - 11, 10) + line(cx + 11, -18, cx + 11, 10); }
+      return s;
+    };
+    const base = (r = 82) => ell(r) + ell(r, 16) + ell(r * 0.8) + ell(r * 0.8, 16) + line(-r, 0, -r, 16) + line(r, 0, r, 16);
 
-    // 오른쪽으로 뻗는 렌즈 배럴(타원 적층)
-    let barrel = '';
-    const BN = 7;
-    for (let i = 0; i < BN; i++) {
-      const t = i / (BN - 1);
-      const x = 170 + t * 250;
-      const ry = 152 - t * 64;
-      barrel += `<ellipse class="brl" pathLength="1" cx="${x.toFixed(0)}" cy="0" rx="11" ry="${ry.toFixed(0)}" fill="none" stroke-width="1"/>`;
-    }
-    // 배럴 상·하 연결선 + 전면 렌즈 디스크
-    const conn =
-      `<line class="conn" pathLength="1" x1="170" y1="-152" x2="420" y2="-88"/>` +
-      `<line class="conn" pathLength="1" x1="170" y1="152" x2="420" y2="88"/>` +
-      `<ellipse class="conn" pathLength="1" cx="445" cy="0" rx="20" ry="92" fill="none"/>`;
-
-    // 왼쪽 피스톤 클러스터(작은 원 3개)
-    let pist = '';
-    [-70, 0, 70].forEach(y => {
-      pist += `<circle class="pist" pathLength="1" cx="-205" cy="${y}" r="34" fill="none"/>` +
-              `<circle class="pist" pathLength="1" cx="-205" cy="${y}" r="20" fill="none"/>`;
-    });
+    // ── 부품 정의: 조립위치(ax,ay) → 분해위치(ex,ey), 개별 스핀(deg) ──
+    const PARTS = [
+      { g: base(),         ax: 0, ay: 185, ex: 0,    ey: 345, spin: 30 },
+      { g: barrel(70, 6),  ax: 0, ay: 120, ex: 0,    ey: 250, spin: 40 },
+      { g: oct(),          ax: 0, ay: 38,  ex: 0,    ey: 38,  spin: 90 },
+      { g: barrel(56, 4),  ax: 0, ay: -5,  ex: 0,    ey: -28, spin: 60 },
+      { g: piston(),       ax: 0, ay: 12,  ex: -330, ey: 80,  spin: -150 },
+      { g: plate(44),      ax: 0, ay: 62,  ex: 300,  ey: 150, spin: 130 },
+      { g: plate(38),      ax: 0, ay: 84,  ex: 360,  ey: 56,  spin: -120 },
+      { g: gear(),         ax: 0, ay: -92, ex: -320, ey: -150, spin: 260 },
+      { g: knurl(),        ax: 0, ay: -52, ex: 320,  ey: -128, spin: 200 },
+      { g: head(),         ax: 0, ay: -150,ex: 70,   ey: -255, spin: 120 },
+    ];
 
     container.innerHTML = `
       <div class="ajx-hero">
-        <div class="ajx-copy">
-          <h2 class="ajx-h">The complete<br>animator's toolbox</h2>
-          <p class="ajx-sub">Break free from browser limitations and animate<br>anything on the web with a single API.</p>
-        </div>
-
         <div class="ajx-stage">
-          <svg viewBox="0 0 1100 600" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-            <g transform="translate(545,300)">
-              ${pist}
-              <line class="conn" pathLength="1" x1="-205" y1="-70" x2="-150" y2="0"/>
-              <line class="conn" pathLength="1" x1="-205" y1="70" x2="-150" y2="0"/>
+          <div class="ajx-copy">
+            <h2 class="ajx-h">The complete<br>animator's toolbox</h2>
+            <p class="ajx-sub">스크롤하면 부품이 360° 회전하며 분해됐다가<br>다시 하나로 조립됩니다.</p>
+          </div>
 
-              <!-- 회전하는 동심 기어/노치 링 (data-spin: 초, data-dir: 방향) -->
-              <g class="ring" data-spin="26" data-dir="1">${ring(152, 1)}${ticks(152, 64, 16, 1)}</g>
-              <g class="ring" data-spin="18" data-dir="-1">${ring(112, 1.6)}${ticks(112, 32, -24, 1.6)}</g>
-              <g class="ring" data-spin="34" data-dir="1">${ring(78, 1)}${ticks(78, 96, 7, 1)}</g>
-              <g class="ring" data-spin="14" data-dir="-1">${ring(46, 1.2)}</g>
-
-              <!-- 중앙 크로스헤어 + 빨간 포커스 마크 -->
-              <line class="cross" pathLength="1" x1="-22" y1="0" x2="22" y2="0"/>
-              <line class="cross" pathLength="1" x1="0" y1="-22" x2="0" y2="22"/>
-              <line class="focus" pathLength="1" x1="0" y1="-78" x2="0" y2="-58" stroke-width="3"/>
-
-              ${barrel}
-              ${conn}
+          <svg class="ajx-svg" viewBox="0 0 1120 620" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <g class="ajx-spin">
+              ${PARTS.map((p, i) => `<g class="part" data-i="${i}">${p.g}</g>`).join('')}
             </g>
           </svg>
-        </div>
 
-        <div class="ajx-foot">
-          <code class="ajx-npm">npm i animejs</code>
-          <span class="ajx-ver">v3.2 · stagger · timeline</span>
-        </div>
+          <div class="ajx-tag" data-at="0.18,0.30" data-n="6.38"></div>
+          <div class="ajx-tag" data-at="0.78,0.26" data-n="8.55"></div>
+          <div class="ajx-tag" data-at="0.82,0.62" data-n="3.50"></div>
+          <div class="ajx-tag" data-at="0.16,0.66" data-n="4.30"></div>
 
-        <!-- 타임라인 스크러버 -->
-        <div class="ajx-scrub" id="ajx-scrub" role="slider" aria-label="타임라인" tabindex="0">
-          <div class="ajx-ticks">${Array.from({ length: 60 }, () => '<i></i>').join('')}</div>
-          <div class="ajx-head" id="ajx-head"></div>
+          <div class="ajx-hint" id="ajx-hint">SCROLL ↓</div>
+
+          <div class="ajx-foot"><code class="ajx-npm">npm i animejs</code><span class="ajx-ver">scroll · explode · 360°</span></div>
+          <div class="ajx-scrub"><div class="ajx-ticks">${Array.from({ length: 60 }, () => '<i></i>').join('')}</div><div class="ajx-head" id="ajx-head"></div></div>
         </div>
       </div>`;
 
-    // ---- 타임라인: 부품이 strokeDashoffset 으로 그려지며 조립 ----
-    const tl = anime.timeline({ autoplay: true, loop: true, easing: 'easeInOutSine' });
-    tl.add({ targets: '.ajx-hero .rg, .ajx-hero .tk', strokeDashoffset: [1, 0], opacity: [0, 1],
-             duration: 1000, delay: anime.stagger(7, { from: 'center' }) }, 0)
-      .add({ targets: '.ajx-hero .cross', strokeDashoffset: [1, 0], opacity: [0, 1], duration: 500 }, 300)
-      .add({ targets: '.ajx-hero .pist', strokeDashoffset: [1, 0], opacity: [0, 1],
-             duration: 600, delay: anime.stagger(70) }, 200)
-      .add({ targets: '.ajx-hero .brl', strokeDashoffset: [1, 0], opacity: [0, 1],
-             duration: 700, delay: anime.stagger(70) }, 500)
-      .add({ targets: '.ajx-hero .conn', strokeDashoffset: [1, 0], opacity: [0, 1],
-             duration: 650, delay: anime.stagger(60) }, 650)
-      .add({ targets: '.ajx-hero .focus', strokeDashoffset: [1, 0], opacity: [0, 1], duration: 350 }, 1150)
-      .add({ targets: '.ajx-hero .ajx-h', opacity: [0, 1], translateX: [-14, 0], duration: 700 }, 150)
-      .add({ targets: '.ajx-hero .ajx-sub', opacity: [0, 1], translateX: [-14, 0], duration: 700 }, 350)
-      .add({ duration: 1400 }); // 루프 사이 여유
-
-    // ---- 동심 링 연속 회전 (중심축 기준) ----
-    container.querySelectorAll('.ajx-hero .ring').forEach(g => {
-      anime({ targets: g, rotate: parseFloat(g.dataset.dir) * 360,
-              duration: parseFloat(g.dataset.spin) * 1000, easing: 'linear', loop: true });
+    // 라벨 텍스트 채우기
+    container.querySelectorAll('.ajx-tag').forEach(t => {
+      const [x, y] = t.dataset.at.split(',');
+      t.style.left = x * 100 + '%'; t.style.top = y * 100 + '%';
+      t.innerHTML = `<span class="dot"></span><span class="num">${t.dataset.n}</span>`;
     });
 
-    // ---- 전체 스테이지 미세 부유 ----
-    anime({ targets: '.ajx-hero .ajx-stage svg', translateY: [-8, 8],
-            direction: 'alternate', duration: 4200, easing: 'easeInOutSine', loop: true });
+    const hero = container.querySelector('.ajx-hero');
+    const stage = container.querySelector('.ajx-stage');
+    const spin = container.querySelector('.ajx-spin');
+    const parts = [...container.querySelectorAll('.part')];
+    const head$ = container.querySelector('#ajx-head');
+    const hint = container.querySelector('#ajx-hint');
+    const tags = [...container.querySelectorAll('.ajx-tag')];
+    const headerH = document.querySelector('.site-header')?.offsetHeight || 64;
+    stage.style.top = headerH + 'px';
+    stage.style.height = `calc(100vh - ${headerH}px)`;
 
-    // ---- 스크러버: 재생 진행 표시 + 드래그 seek ----
-    const scrub = container.querySelector('#ajx-scrub');
-    const head = container.querySelector('#ajx-head');
-    let scrubbing = false;
+    const CX = 560, CY = 300;
+    const ease = t => t * t * (3 - 2 * t); // smoothstep
 
-    const setHead = p => { head.style.left = (p * 100).toFixed(2) + '%'; };
-    const seekTo = clientX => {
-      const r = scrub.getBoundingClientRect();
-      const p = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
-      tl.seek(p * tl.duration);
-      setHead(p);
-    };
+    function render() {
+      const r = hero.getBoundingClientRect();
+      const dist = hero.offsetHeight - (window.innerHeight - headerH);
+      let p = dist > 0 ? (headerH - r.top) / dist : 0;
+      p = Math.min(1, Math.max(0, p));
 
-    scrub.addEventListener('pointerdown', e => {
-      scrubbing = true; tl.pause(); scrub.setPointerCapture(e.pointerId); seekTo(e.clientX);
-    });
-    scrub.addEventListener('pointermove', e => { if (scrubbing) seekTo(e.clientX); });
-    const endScrub = () => { if (scrubbing) { scrubbing = false; tl.play(); } };
-    scrub.addEventListener('pointerup', endScrub);
-    scrub.addEventListener('pointercancel', endScrub);
+      const explode = ease(Math.sin(p * Math.PI));      // 0(조립)→1(분해)→0(조립)
+      const t = performance.now() / 1000;
+      const idle = (1 - explode) * Math.sin(t * 0.7) * 2; // 정지 시 미세 흔들림
+      const rot = p * 360 + idle;
 
-    // 재생 중 플레이헤드 동기화
-    const sync = () => { if (!scrubbing) setHead((tl.progress || 0) / 100); requestAnimationFrame(sync); };
-    requestAnimationFrame(sync);
+      spin.setAttribute('transform', `translate(${CX},${CY}) rotate(${rot.toFixed(2)}) scale(1,0.94)`);
+
+      parts.forEach((el, i) => {
+        const d = PARTS[i];
+        const x = d.ax + (d.ex - d.ax) * explode;
+        const y = d.ay + (d.ey - d.ay) * explode;
+        const a = explode * d.spin;
+        el.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${a.toFixed(1)})`);
+      });
+
+      head$.style.left = (p * 100).toFixed(2) + '%';
+      hint.style.opacity = Math.max(0, 1 - p * 6);
+      tags.forEach(tg => tg.style.opacity = explode);
+
+      requestAnimationFrame(render);
+    }
+
+    // 등장: 부품 페이드인(transform 은 render 가 전담하므로 opacity 만 건드림)
+    anime({ targets: parts, opacity: [0, 1], duration: 900, delay: anime.stagger(70), easing: 'easeOutQuad' });
+    requestAnimationFrame(render);
   }
 };
 
 function injectStyles() {
   if (document.getElementById('ajx-style')) return;
   const css = `
-  .ajx-hero{ position:relative; background:#dad5d0; border-radius:16px; min-height:560px;
-    overflow:hidden; margin:-4px 0; font-family:'Helvetica Neue',Arial,sans-serif; }
-  .ajx-copy{ position:absolute; top:48px; left:52px; z-index:3; max-width:520px; }
-  .ajx-h{ margin:0; font-size:46px; line-height:1.04; font-weight:800; letter-spacing:-1.4px; color:#1b1714; }
-  .ajx-sub{ margin:18px 0 0; font-size:15px; line-height:1.5; font-weight:600; color:rgba(27,23,20,.6); }
-  .ajx-stage{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
-  .ajx-stage svg{ width:100%; height:100%; max-height:560px; }
-  .ajx-hero svg line, .ajx-hero svg circle, .ajx-hero svg ellipse{ stroke:rgba(34,30,26,.5); }
-  .ajx-hero svg [pathLength]{ stroke-dasharray:1; stroke-dashoffset:1; }
-  .ajx-hero .focus{ stroke:#ff2b2b !important; }
-  .ajx-foot{ position:absolute; left:52px; bottom:40px; z-index:3; display:flex; align-items:center; gap:14px; }
+  .ajx-hero{ position:relative; height:300vh; background:#dad5d0; border-radius:16px;
+    margin:-4px 0; font-family:'Helvetica Neue',Arial,sans-serif; }
+  .ajx-stage{ position:sticky; display:flex; align-items:center; justify-content:center;
+    overflow:hidden; border-radius:16px; }
+  .ajx-copy{ position:absolute; top:42px; left:48px; z-index:3; max-width:520px; pointer-events:none; }
+  .ajx-h{ margin:0; font-size:44px; line-height:1.04; font-weight:800; letter-spacing:-1.4px; color:#1b1714; }
+  .ajx-sub{ margin:16px 0 0; font-size:14.5px; line-height:1.5; font-weight:600; color:rgba(27,23,20,.55); }
+  .ajx-svg{ width:100%; height:100%; }
+  .ajx-svg ellipse, .ajx-svg line, .ajx-svg rect, .ajx-svg polygon, .ajx-svg path{
+    fill:none; stroke:rgba(34,30,26,.5); stroke-width:1.1; vector-effect:non-scaling-stroke;
+    stroke-linecap:round; stroke-linejoin:round; }
+  .ajx-tag{ position:absolute; z-index:3; display:flex; align-items:center; gap:7px; transform:translate(-50%,-50%);
+    opacity:0; transition:opacity .15s; pointer-events:none; }
+  .ajx-tag .dot{ width:9px; height:9px; border-radius:50%; background:#7c3aed; box-shadow:0 0 0 4px rgba(124,58,237,.18); }
+  .ajx-tag .num{ font-family:'SF Mono',Consolas,monospace; font-size:12px; font-weight:600; color:#1b1714;
+    background:rgba(255,255,255,.55); padding:2px 7px; border-radius:5px; }
+  .ajx-hint{ position:absolute; bottom:104px; left:50%; transform:translateX(-50%); z-index:3;
+    font-size:11px; font-weight:800; letter-spacing:3px; color:rgba(27,23,20,.4); }
+  .ajx-foot{ position:absolute; left:48px; bottom:36px; z-index:3; display:flex; align-items:center; gap:14px; }
   .ajx-npm{ font-family:'SF Mono',Consolas,monospace; font-size:13px; color:#1b1714;
     background:rgba(27,23,20,.07); border:1px solid rgba(27,23,20,.14); padding:6px 12px; border-radius:7px; }
-  .ajx-ver{ font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:rgba(27,23,20,.45); }
-  .ajx-scrub{ position:absolute; right:36px; bottom:36px; z-index:4; width:340px; height:34px;
-    background:#1b1714; border-radius:8px; cursor:ew-resize; overflow:hidden;
-    box-shadow:0 8px 24px rgba(0,0,0,.18); touch-action:none; }
-  .ajx-ticks{ position:absolute; inset:0; display:flex; align-items:center; justify-content:space-between;
-    padding:0 12px; pointer-events:none; }
-  .ajx-ticks i{ width:1px; height:11px; background:rgba(255,255,255,.32); }
-  .ajx-ticks i:nth-child(5n+1){ height:17px; background:rgba(255,255,255,.55); }
+  .ajx-ver{ font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:rgba(27,23,20,.42); }
+  .ajx-scrub{ position:absolute; right:34px; bottom:34px; z-index:4; width:320px; height:32px;
+    background:#1b1714; border-radius:8px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,.18); }
+  .ajx-ticks{ position:absolute; inset:0; display:flex; align-items:center; justify-content:space-between; padding:0 12px; }
+  .ajx-ticks i{ width:1px; height:10px; background:rgba(255,255,255,.3); }
+  .ajx-ticks i:nth-child(5n+1){ height:16px; background:rgba(255,255,255,.55); }
   .ajx-head{ position:absolute; top:4px; bottom:4px; left:0; width:2px; background:#ff2b2b;
-    box-shadow:0 0 8px rgba(255,43,43,.8); border-radius:2px; transform:translateX(-1px); }
+    box-shadow:0 0 8px rgba(255,43,43,.8); border-radius:2px; }
   @media (max-width:760px){
-    .ajx-h{ font-size:32px; } .ajx-copy{ top:32px; left:28px; }
-    .ajx-scrub{ width:220px; right:20px; } .ajx-foot{ left:28px; bottom:28px; }
+    .ajx-h{ font-size:30px; } .ajx-copy{ top:28px; left:24px; }
+    .ajx-scrub{ width:200px; right:18px; } .ajx-foot{ left:24px; bottom:26px; }
   }`;
   const el = document.createElement('style');
   el.id = 'ajx-style';
