@@ -71,9 +71,12 @@ export default {
     container.innerHTML = `
       <div class="ajx-hero">
         <div class="ajx-stage">
+          <div class="ajx-bg"></div>
+          <div class="ajx-stars"></div>
+          <div class="ajx-glow"></div>
           <div class="ajx-copy">
             <h2 class="ajx-h">The complete<br>animator's toolbox</h2>
-            <p class="ajx-sub">스크롤하면 부품이 360° 회전하며 분해됐다가<br>다시 하나로 조립됩니다.</p>
+            <p class="ajx-sub">스크롤하면 부품이 360° 회전하며 분해됐다가<br>다시 하나의 별처럼 조립됩니다.</p>
           </div>
 
           <svg class="ajx-svg" viewBox="0 0 1120 620" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
@@ -102,23 +105,36 @@ export default {
     });
 
     const hero = container.querySelector('.ajx-hero');
-    const stage = container.querySelector('.ajx-stage');
     const spin = container.querySelector('.ajx-spin');
     const parts = [...container.querySelectorAll('.part')];
     const head$ = container.querySelector('#ajx-head');
     const hint = container.querySelector('#ajx-hint');
     const tags = [...container.querySelectorAll('.ajx-tag')];
+    const starsEl = container.querySelector('.ajx-stars');
+    const glowEl = container.querySelector('.ajx-glow');
+    const copyEl = container.querySelector('.ajx-copy');
     const headerH = document.querySelector('.site-header')?.offsetHeight || 64;
-    stage.style.top = headerH + 'px';
-    stage.style.height = `calc(100vh - ${headerH}px)`;
+    copyEl.style.top = (headerH + 28) + 'px';
+
+    // 별빛 생성 (3개 깊이 레이어 → 시차용 data-depth)
+    let sh = '';
+    for (let i = 0; i < 160; i++) {
+      const sz = (Math.random() * 2.2 + 0.4).toFixed(1);
+      const depth = (0.2 + Math.random() * 0.8).toFixed(2);
+      sh += `<i style="left:${(Math.random() * 100).toFixed(2)}%;top:${(Math.random() * 100).toFixed(2)}%;` +
+            `width:${sz}px;height:${sz}px;--o:${(0.25 + Math.random() * 0.7).toFixed(2)};` +
+            `--d:${depth};animation-delay:${(Math.random() * 5).toFixed(2)}s;` +
+            `animation-duration:${(2.4 + Math.random() * 3.5).toFixed(2)}s"></i>`;
+    }
+    starsEl.innerHTML = sh;
 
     const CX = 560, CY = 300;
     const ease = t => t * t * (3 - 2 * t); // smoothstep
 
     function render() {
       const r = hero.getBoundingClientRect();
-      const dist = hero.offsetHeight - (window.innerHeight - headerH);
-      let p = dist > 0 ? (headerH - r.top) / dist : 0;
+      const dist = hero.offsetHeight - window.innerHeight;
+      let p = dist > 0 ? -r.top / dist : 0;
       p = Math.min(1, Math.max(0, p));
 
       const explode = ease(Math.sin(p * Math.PI));      // 0(조립)→1(분해)→0(조립)
@@ -136,6 +152,11 @@ export default {
         el.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${a.toFixed(1)})`);
       });
 
+      // 시차: 별과 글로우가 스크롤 깊이에 따라 천천히 흐름
+      starsEl.style.transform = `translateY(${(-p * 120).toFixed(1)}px)`;
+      glowEl.style.transform = `translate(-50%,-50%) scale(${(1 + explode * 0.35).toFixed(3)})`;
+      glowEl.style.opacity = (0.55 + explode * 0.4).toFixed(2);
+
       head$.style.left = (p * 100).toFixed(2) + '%';
       hint.style.opacity = Math.max(0, 1 - p * 6);
       tags.forEach(tg => tg.style.opacity = explode);
@@ -152,39 +173,72 @@ export default {
 function injectStyles() {
   if (document.getElementById('ajx-style')) return;
   const css = `
-  .ajx-hero{ position:relative; height:300vh; background:#dad5d0; border-radius:16px;
-    margin:-4px 0; font-family:'Helvetica Neue',Arial,sans-serif; }
-  .ajx-stage{ position:sticky; display:flex; align-items:center; justify-content:center;
-    overflow:hidden; border-radius:16px; }
-  .ajx-copy{ position:absolute; top:42px; left:48px; z-index:3; max-width:520px; pointer-events:none; }
-  .ajx-h{ margin:0; font-size:44px; line-height:1.04; font-weight:800; letter-spacing:-1.4px; color:#1b1714; }
-  .ajx-sub{ margin:16px 0 0; font-size:14.5px; line-height:1.5; font-weight:600; color:rgba(27,23,20,.55); }
-  .ajx-svg{ width:100%; height:100%; }
+  /* 전체화면(풀블리드) 우주 */
+  .ajx-hero{ position:relative; height:300vh; margin-top:-48px; margin-bottom:-48px;
+    width:100vw; margin-left:calc(-50vw + 50%); margin-right:calc(-50vw + 50%);
+    background:#04050d; font-family:'Helvetica Neue',Arial,sans-serif; }
+  .ajx-stage{ position:sticky; top:0; height:100vh; width:100%;
+    display:flex; align-items:center; justify-content:center; overflow:hidden; }
+
+  /* 네뷸라 배경 */
+  .ajx-bg{ position:absolute; inset:-30%; z-index:0;
+    background:
+      radial-gradient(38% 50% at 28% 32%, rgba(110,72,220,.40), transparent 70%),
+      radial-gradient(42% 48% at 74% 64%, rgba(40,120,200,.32), transparent 72%),
+      radial-gradient(34% 40% at 60% 22%, rgba(214,68,150,.22), transparent 70%),
+      radial-gradient(60% 70% at 50% 50%, #0a0a1e 0%, #05060f 55%, #03030a 100%);
+    animation:ajxNebula 60s linear infinite; }
+  @keyframes ajxNebula{ to{ transform:rotate(360deg) scale(1.05); } }
+
+  /* 별빛 */
+  .ajx-stars{ position:absolute; inset:-10% 0; z-index:1; will-change:transform; }
+  .ajx-stars i{ position:absolute; border-radius:50%; background:#eaf0ff;
+    opacity:var(--o); animation:ajxTwinkle ease-in-out infinite;
+    box-shadow:0 0 6px rgba(190,205,255,.7); transform:scale(var(--d)); }
+  @keyframes ajxTwinkle{ 0%,100%{ opacity:calc(var(--o) * .25); } 50%{ opacity:var(--o); } }
+
+  /* 기계 뒤 신비한 광원 */
+  .ajx-glow{ position:absolute; left:50%; top:50%; z-index:1; width:680px; height:680px;
+    transform:translate(-50%,-50%); pointer-events:none;
+    background:radial-gradient(circle, rgba(140,110,255,.35) 0%, rgba(80,140,230,.16) 35%, transparent 68%);
+    filter:blur(8px); }
+
+  .ajx-copy{ position:absolute; top:90px; left:6vw; z-index:4; max-width:560px; pointer-events:none; }
+  .ajx-h{ margin:0; font-size:46px; line-height:1.04; font-weight:800; letter-spacing:-1.4px;
+    color:#f4f2ff; text-shadow:0 0 24px rgba(150,130,255,.55), 0 2px 10px rgba(0,0,0,.4); }
+  .ajx-sub{ margin:16px 0 0; font-size:14.5px; line-height:1.6; font-weight:500; color:rgba(210,214,240,.72); }
+
+  .ajx-svg{ position:relative; z-index:2; width:100%; height:100%;
+    filter:drop-shadow(0 0 3px rgba(150,140,255,.65)); }
   .ajx-svg ellipse, .ajx-svg line, .ajx-svg rect, .ajx-svg polygon, .ajx-svg path{
-    fill:none; stroke:rgba(34,30,26,.5); stroke-width:1.1; vector-effect:non-scaling-stroke;
+    fill:none; stroke:rgba(196,210,255,.62); stroke-width:1.1; vector-effect:non-scaling-stroke;
     stroke-linecap:round; stroke-linejoin:round; }
-  .ajx-tag{ position:absolute; z-index:3; display:flex; align-items:center; gap:7px; transform:translate(-50%,-50%);
+
+  .ajx-tag{ position:absolute; z-index:4; display:flex; align-items:center; gap:7px; transform:translate(-50%,-50%);
     opacity:0; transition:opacity .15s; pointer-events:none; }
-  .ajx-tag .dot{ width:9px; height:9px; border-radius:50%; background:#7c3aed; box-shadow:0 0 0 4px rgba(124,58,237,.18); }
-  .ajx-tag .num{ font-family:'SF Mono',Consolas,monospace; font-size:12px; font-weight:600; color:#1b1714;
-    background:rgba(255,255,255,.55); padding:2px 7px; border-radius:5px; }
-  .ajx-hint{ position:absolute; bottom:104px; left:50%; transform:translateX(-50%); z-index:3;
-    font-size:11px; font-weight:800; letter-spacing:3px; color:rgba(27,23,20,.4); }
-  .ajx-foot{ position:absolute; left:48px; bottom:36px; z-index:3; display:flex; align-items:center; gap:14px; }
-  .ajx-npm{ font-family:'SF Mono',Consolas,monospace; font-size:13px; color:#1b1714;
-    background:rgba(27,23,20,.07); border:1px solid rgba(27,23,20,.14); padding:6px 12px; border-radius:7px; }
-  .ajx-ver{ font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:rgba(27,23,20,.42); }
-  .ajx-scrub{ position:absolute; right:34px; bottom:34px; z-index:4; width:320px; height:32px;
-    background:#1b1714; border-radius:8px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,.18); }
+  .ajx-tag .dot{ width:9px; height:9px; border-radius:50%; background:#a78bfa;
+    box-shadow:0 0 0 4px rgba(167,139,250,.2), 0 0 12px rgba(167,139,250,.9); }
+  .ajx-tag .num{ font-family:'SF Mono',Consolas,monospace; font-size:12px; font-weight:600; color:#eef0ff;
+    background:rgba(255,255,255,.08); border:1px solid rgba(190,205,255,.2); padding:2px 7px; border-radius:5px;
+    backdrop-filter:blur(4px); }
+
+  .ajx-hint{ position:absolute; bottom:104px; left:50%; transform:translateX(-50%); z-index:4;
+    font-size:11px; font-weight:800; letter-spacing:3px; color:rgba(200,205,235,.5); }
+  .ajx-foot{ position:absolute; left:6vw; bottom:40px; z-index:4; display:flex; align-items:center; gap:14px; }
+  .ajx-npm{ font-family:'SF Mono',Consolas,monospace; font-size:13px; color:#eef0ff;
+    background:rgba(255,255,255,.06); border:1px solid rgba(190,205,255,.18); padding:6px 12px; border-radius:7px; }
+  .ajx-ver{ font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:rgba(190,200,230,.42); }
+  .ajx-scrub{ position:absolute; right:5vw; bottom:38px; z-index:5; width:320px; height:32px;
+    background:rgba(10,10,24,.7); border:1px solid rgba(190,205,255,.15); border-radius:8px;
+    overflow:hidden; box-shadow:0 8px 28px rgba(0,0,0,.4); backdrop-filter:blur(6px); }
   .ajx-ticks{ position:absolute; inset:0; display:flex; align-items:center; justify-content:space-between; padding:0 12px; }
-  .ajx-ticks i{ width:1px; height:10px; background:rgba(255,255,255,.3); }
-  .ajx-ticks i:nth-child(5n+1){ height:16px; background:rgba(255,255,255,.55); }
+  .ajx-ticks i{ width:1px; height:10px; background:rgba(200,210,255,.28); }
+  .ajx-ticks i:nth-child(5n+1){ height:16px; background:rgba(200,210,255,.55); }
   .ajx-head{ position:absolute; top:4px; bottom:4px; left:0; width:2px; background:#ff2b2b;
-    box-shadow:0 0 8px rgba(255,43,43,.8); border-radius:2px; }
+    box-shadow:0 0 10px rgba(255,43,43,.9); border-radius:2px; }
   @media (max-width:760px){
-    .ajx-h{ font-size:30px; } .ajx-copy{ top:28px; left:24px; }
-    .ajx-scrub{ width:200px; right:18px; } .ajx-foot{ left:24px; bottom:26px; }
-  }`;
+    .ajx-h{ font-size:30px; } .ajx-copy{ left:6vw; }
+    .ajx-scrub{ width:200px; } }`;
   const el = document.createElement('style');
   el.id = 'ajx-style';
   el.textContent = css;
