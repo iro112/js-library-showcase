@@ -76,7 +76,7 @@ export default {
           <div class="ajx-glow"></div>
           <div class="ajx-copy">
             <h2 class="ajx-h">The complete<br>animator's toolbox</h2>
-            <p class="ajx-sub">스크롤하면 부품이 360° 회전하며 분해됐다가<br>다시 하나의 별처럼 조립됩니다.</p>
+            <p class="ajx-sub">스크롤을 내리면 흩어진 부품이 360° 회전하며<br>하나의 별처럼 합체됩니다.</p>
           </div>
 
           <svg class="ajx-svg" viewBox="0 0 1120 620" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
@@ -90,9 +90,9 @@ export default {
           <div class="ajx-tag" data-at="0.82,0.62" data-n="3.50"></div>
           <div class="ajx-tag" data-at="0.16,0.66" data-n="4.30"></div>
 
-          <div class="ajx-hint" id="ajx-hint">SCROLL ↓</div>
+          <div class="ajx-hint" id="ajx-hint">SCROLL ↓ TO ASSEMBLE</div>
 
-          <div class="ajx-foot"><code class="ajx-npm">npm i animejs</code><span class="ajx-ver">scroll · explode · 360°</span></div>
+          <div class="ajx-foot"><code class="ajx-npm">npm i animejs</code><span class="ajx-ver">scroll · assemble · 360°</span></div>
           <div class="ajx-scrub"><div class="ajx-ticks">${Array.from({ length: 60 }, () => '<i></i>').join('')}</div><div class="ajx-head" id="ajx-head"></div></div>
         </div>
       </div>`;
@@ -137,29 +137,31 @@ export default {
       let p = dist > 0 ? -r.top / dist : 0;
       p = Math.min(1, Math.max(0, p));
 
-      const explode = ease(Math.sin(p * Math.PI));      // 0(조립)→1(분해)→0(조립)
+      // 스크롤을 내릴수록 0(흩어짐) → 1(합체)
+      const assemble = ease(p);
+      const apart = 1 - assemble;
       const t = performance.now() / 1000;
-      const idle = (1 - explode) * Math.sin(t * 0.7) * 2; // 정지 시 미세 흔들림
-      const rot = p * 360 + idle;
+      const idle = Math.sin(t * 0.6) * 1.6;             // 항상 은은하게 살아있는 회전
+      const rot = p * 360 + idle;                       // 합체되며 한 바퀴 회전
 
       spin.setAttribute('transform', `translate(${CX},${CY}) rotate(${rot.toFixed(2)}) scale(1,0.94)`);
 
       parts.forEach((el, i) => {
         const d = PARTS[i];
-        const x = d.ax + (d.ex - d.ax) * explode;
-        const y = d.ay + (d.ey - d.ay) * explode;
-        const a = explode * d.spin;
+        const x = d.ex + (d.ax - d.ex) * assemble;       // 분해위치 → 조립위치
+        const y = d.ey + (d.ay - d.ey) * assemble;
+        const a = apart * d.spin;                        // 자리를 잡으며 스핀을 푼다
         el.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${a.toFixed(1)})`);
       });
 
-      // 시차: 별과 글로우가 스크롤 깊이에 따라 천천히 흐름
+      // 시차 + 합체될수록 강해지는 광원(하나의 별)
       starsEl.style.transform = `translateY(${(-p * 120).toFixed(1)}px)`;
-      glowEl.style.transform = `translate(-50%,-50%) scale(${(1 + explode * 0.35).toFixed(3)})`;
-      glowEl.style.opacity = (0.55 + explode * 0.4).toFixed(2);
+      glowEl.style.transform = `translate(-50%,-50%) scale(${(0.8 + assemble * 0.4).toFixed(3)})`;
+      glowEl.style.opacity = (0.3 + assemble * 0.6).toFixed(2);
 
       head$.style.left = (p * 100).toFixed(2) + '%';
       hint.style.opacity = Math.max(0, 1 - p * 6);
-      tags.forEach(tg => tg.style.opacity = explode);
+      tags.forEach(tg => tg.style.opacity = apart);     // 흩어졌을 때 라벨 표시
 
       requestAnimationFrame(render);
     }
