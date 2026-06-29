@@ -1,6 +1,9 @@
 import { ShowcaseApp } from './app.js';
 import WelcomeShowcase from './showcases/welcome.js';
 
+// ── 프레임워크 ──────────────────────────────
+import ReactShowcase from './showcases/react.js';
+
 // ── 애니메이션 ──────────────────────────────
 import GsapShowcase from './showcases/gsap.js';
 import AnimejsShowcase from './showcases/animejs.js';
@@ -75,6 +78,8 @@ const app = new ShowcaseApp('#tab-nav', '#showcase-content');
 
 app
   .register(WelcomeShowcase)
+  // 프레임워크
+  .register(ReactShowcase)
   // 애니메이션
   .register(GsapShowcase)
   .register(AnimejsShowcase)
