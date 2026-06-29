@@ -3,6 +3,7 @@ import WelcomeShowcase from './showcases/welcome.js';
 
 // ── 프레임워크 ──────────────────────────────
 import ReactShowcase from './showcases/react.js';
+import MuiShowcase from './showcases/mui.js';
 
 // ── 애니메이션 ──────────────────────────────
 import GsapShowcase from './showcases/gsap.js';
@@ -80,6 +81,7 @@ app
   .register(WelcomeShowcase)
   // 프레임워크
   .register(ReactShowcase)
+  .register(MuiShowcase)
   // 애니메이션
   .register(GsapShowcase)
   .register(AnimejsShowcase)
